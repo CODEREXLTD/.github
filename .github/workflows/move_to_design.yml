@@ -1,7 +1,9 @@
 name: Move Task to Design Board
 
 on:
-  workflow_dispatch:
+  issues:
+    types:
+      - labeled
 
 jobs:
   debug:
