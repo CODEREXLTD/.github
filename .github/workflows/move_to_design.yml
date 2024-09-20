@@ -10,4 +10,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Log Event
-        run: echo "Issue labeled: ${{ github.event.label.name }}"
+        run: |
+          echo "Issue labeled: ${{ github.event.label.name }}"
