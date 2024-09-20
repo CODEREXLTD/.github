@@ -1,0 +1,79 @@
+name: Move Task to Design Board
+
+on:
+  issues:
+    types:
+      - labeled
+
+jobs:
+  move_task_to_design:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check if label is 'Design' and issue is in Engineering project
+        if: ${{ github.event.label.name == 'Design' && github.event.issue.project.id == secrets.ENGINEERING_PROJECT_ID }} 
+        run: echo "Task labeled as 'Design' in the Engineering project, moving to the Design project."
+
+      - name: Get the issue details
+        uses: actions/github-script@v6
+        id: issue_details
+        with:
+          script: |
+            return {
+              issue_id: context.payload.issue.id,
+              issue_number: context.payload.issue.number
+            };
+
+      - name: Remove issue from Engineering project
+        if: ${{ github.event.label.name == 'Design' && github.event.issue.project.id == secrets.ENGINEERING_PROJECT_ID }} 
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const engineeringColumnId = process.env.ENGINEERING_COLUMN_ID;
+            const issueId = '${{ steps.issue_details.outputs.issue_id }}';
+
+            const cards = await github.projects.listCards({
+              column_id: engineeringColumnId
+            });
+
+            const card = cards.data.find(card => card.content_url.includes(issueId));
+
+            if (card) {
+              await github.projects.deleteCard({
+                card_id: card.id
+              });
+              console.log("Issue removed from the Engineering project.");
+            } else {
+              console.log("Issue not found in the Engineering project.");
+            }
+
+      - name: Add issue to Design project stage
+        if: ${{ github.event.label.name == 'Design' && github.event.issue.project.id == secrets.ENGINEERING_PROJECT_ID }} 
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const issueNumber = '${{ steps.issue_details.outputs.issue_number }}';
+            const designProjectStageColumnId = process.env.DESIGN_COLUMN_ID;
+
+            await github.projects.createCard({
+              column_id: designProjectStageColumnId,
+              content_id: issueNumber,
+              content_type: 'Issue'
+            });
+            console.log("Issue moved to the Design project.");
+
+      - name: Add a comment to the issue
+        if: ${{ github.event.label.name == 'Design' && github.event.issue.project.id == secrets.ENGINEERING_PROJECT_ID }} 
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const issueNumber = '${{ steps.issue_details.outputs.issue_number }}';
+            const commentBody = "This issue has been moved to the Design project by the GitHub bot.";
+
+            await github.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: commentBody
+            });
+            console.log("Comment added to the issue.");
