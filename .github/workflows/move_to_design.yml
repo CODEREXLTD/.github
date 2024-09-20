@@ -6,6 +6,12 @@ on:
       - labeled
 
 jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log Event
+        run: echo "Issue labeled: ${{ github.event.label.name }}"
+        
   move_task_to_design:
     runs-on: ubuntu-latest
 
